@@ -19,3 +19,10 @@
 
 ### [os_daemons]
 #### updateCatalog = /path_to/updateCatalog.py
+
+* populate database 'infotraffic' with:
+
+### waze_infotraffic_doc
+### vocabulary/myowl.xml 
+### resource/sparql.html and all js libraries
+### pm_tweets_doc
