@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+
+<!-- standard namespaces declaration -->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    	xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"
+    	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    	xmlns:dct="http://purl.org/dc/terms/"
+    	xmlns:dbp="http://dbpedia.org/resource/">
+
+    <rdf:Description rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/vocmyowl#">
+        <dct:title>My vocabulary for dataset</dct:title>
+        <dct:description>A vocabulary for representing Twitter messages and Waze data from my database.</dct:description>
+        <dct:date>20/05/2017</dct:date>
+        <rdfs:label>myo</rdfs:label>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Description>	
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#Resource">
+        <rdfs:label>My generic resurce type</rdfs:label>
+        <rdfs:description>An item from dataset.</rdfs:description>
+        <rdfs:comment>is a generic data kind into database.</rdfs:comment>
+    </rdfs:Class>
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#TwitterItem">
+        <rdfs:label>Twitter message</rdfs:label>
+        <rdfs:description>An item from Twitter PM dataset.</rdfs:description>
+        <rdfs:comment>a Twitter message from PM of Palermo</rdfs:comment>
+    </rdfs:Class>
+    
+    <rdfs:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#tweet">
+        <rdfs:label>The message</rdfs:label>
+        <rdfs:description>Data from Twitter item.</rdfs:description>
+        <rdfs:comment>a rich infromation from Twitter Item message from PM of Palermo</rdfs:comment>
+    </rdfs:Property>
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#WazeItem">
+        <rdfs:label>Waze json message</rdfs:label>
+        <rdfs:description>An item from Waze json dataset.</rdfs:description>
+        <rdfs:comment>contain only interesting information</rdfs:comment>
+    </rdfs:Class>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#speed">
+        <rdfs:label>Speed of vehicules</rdfs:label>
+        <rdfs:description>Medium of speed across the road.</rdfs:description>
+        <rdfs:comment>Calculated from Waze data, the medium of the speed in that road.</rdfs:comment>
+    </rdf:Property>
+	
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#hasAnnotation">
+        <rdfs:label>Annotation</rdfs:label>
+        <rdfs:description>Link to a annotation resource.</rdfs:description>
+        <rdfs:comment>Annotation from dbpedia.spotlight.org or other resources.</rdfs:comment>
+    </rdf:Property>
+    
+	<rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#length">
+        <rdfs:label>Length of the street</rdfs:label>
+        <rdfs:description></rdfs:description>
+        <rdfs:comment>Calculated from Waze data, is the length of the road.</rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#hasPoint">
+        <rdfs:label>Geographical points of nodes</rdfs:label>
+        <rdfs:description>Points on geographical position.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#hasNext">
+        <rdfs:label>Next in a set of objects</rdfs:label>
+        <rdfs:description>Reference to next object in a sequance of object.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#hasItem">
+        <rdfs:label>Item object</rdfs:label>
+        <rdfs:description>Item for the current subject.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#Osm">
+        <rdfs:label>OSM object data from openstreetmap</rdfs:label>
+        <rdfs:description>Data from Nominatim webservice.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdfs:Class>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#geometry">
+        <rdfs:label>Geometrical parameters</rdfs:label>
+        <rdfs:description>Basical geometric property.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#time">
+        <rdfs:label>Time of data</rdfs:label>
+        <rdfs:description></rdfs:description>
+        <rdfs:comment>DateTime data format for generated data time.</rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#pointOrder">
+        <rdfs:label></rdfs:label>
+        <rdfs:description></rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#osmtype">
+        <rdfs:label>Type of polygon from OSM object data from openstreetmap</rdfs:label>
+        <rdfs:description>Polygon kind.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Property rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#onStreet">
+        <rdfs:label>Street name interested </rdfs:label>
+        <rdfs:description>The street name of Palermo bounds, where object insist.</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Property>
+    
+    <rdf:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#Incidente">
+        <rdfs:label></rdfs:label>
+        <rdfs:description></rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdf:Class>
+    
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#Blocco">
+        <rdfs:label></rdfs:label>
+        <rdfs:description></rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdfs:Class>
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#Interruzione">
+        <rdfs:label></rdfs:label>
+        <rdfs:description></rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdfs:Class>
+    
+    <rdfs:Class rdf:about="http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#Unclassified">
+        <rdfs:label>Unclassified object</rdfs:label>
+        <rdfs:description>Tweet text isn't recognized from parser</rdfs:description>
+        <rdfs:comment></rdfs:comment>
+    </rdfs:Class>
+    
+</rdf:RDF>

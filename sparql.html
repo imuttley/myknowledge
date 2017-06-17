@@ -1,0 +1,1094 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html version="-//W3C//DTD XHTML 1.1//EN"
+    xmlns="http://www.w3.org/1999/xhtml"
+    xml:lang="en"
+   
+>
+<head prefix="base: http://neuron4web.palermo.enea.it/opendata/  dct: http://purl.org/dc/terms/">
+    <title>my sparql server page</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<meta name="description" content="my experiment for opendata portal"/>
+	<meta name="author" content="imuttley" />
+	
+	<!-- <link rel="stylesheet" type="text/css" href="http://neuron4web.palermo.enea.it/opendata/resource/style.css"></link> -->
+   	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+	<link rel="stylesheet" href="http://neuron4web.palermo.enea.it/opendata/resource/jquery-ui.min.css"></link>
+	<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
+    
+	<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
+	<script src="http://neuron4web.palermo.enea.it/opendata/resource/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+   	<script src="http://neuron4web.palermo.enea.it/opendata/resource/d3.v3.min.js"></script>
+   	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+   	<script src="http://neuron4web.palermo.enea.it/opendata/resource/jquery-ui.min.js"></script>
+   	<style>
+   	/*
+	style for data graphical representation
+	*/
+.spinner {
+  width: 40px;
+  height: 40px;
+
+  position: relative;
+  margin: 100px auto;
+}
+
+.double-bounce1, .double-bounce2 {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #333;
+  opacity: 0.6;
+  position: absolute;
+  top: 0;
+  left: 0;
+  
+  -webkit-animation: sk-bounce 2.0s infinite ease-in-out;
+  animation: sk-bounce 2.0s infinite ease-in-out;
+}
+
+.double-bounce2 {
+  -webkit-animation-delay: -1.0s;
+  animation-delay: -1.0s;
+}
+
+@-webkit-keyframes sk-bounce {
+  0%, 100% { -webkit-transform: scale(0.0) }
+  50% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes sk-bounce {
+  0%, 100% { 
+    transform: scale(0.0);
+    -webkit-transform: scale(0.0);
+  } 50% { 
+    transform: scale(1.0);
+    -webkit-transform: scale(1.0);
+  }
+}
+
+.twittermsgbox {
+	position:relative;
+	background-color:transparent;
+	width:240px;
+	height:360px;
+	top:10px;
+	left:10px;
+	z-index:9999;
+	/*border-radius:9px;*/
+}
+.twittermsgbox p {
+	color: red;
+}
+
+.node {
+  cursor: pointer;
+}
+
+.node circle {
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.node text {
+  font: 10px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.5px;
+}
+#svgformap 
+canvas {
+	width: 1280px;
+	height: 800px;
+}
+	</style>
+   	
+   	
+   	<script type="text/javascript">
+    
+    
+    // javascript resource request
+    class httpRequest {
+    	constructor(method,url){
+    		this.req=new XMLHttpRequest();
+    		this.req.open(method,url,true);
+    		this.req.onreadystatechange=this.httpreqlog;
+    	}
+    	get response(){
+    		this.req.send()	
+    	}
+    	httpreqlog(e){
+    		var that=e.target;
+        	if (that.readyState===XMLHttpRequest.DONE && that.status===200){
+        		console.log(that.responseText);
+        	}
+    	}
+    }
+    
+    
+    var method="GET";
+    var simpletrafficquery="http://neuron4web.palermo.enea.it/opendata/_trafficendpoint?format=json&query=select+%3Fs+%3Fp+%3Fo+where+%7B+%3Fs+%3Fp+%3Fo+%7D+LIMIT+20";
+    var simpletwitterquery="http://neuron4web.palermo.enea.it/opendata/_twitterendpoint?format=json&query=select+%3Fs+where+%7B+%3Fs+%3Fp+%3Fo+%7D+LIMIT+20";
+    
+   
+    /* preformatted query string for traffic */ 
+    function query_for_traffic_root_by_date(startdate,enddate){
+    	/* return ?s ?p ?o for root of traffic tree, filter by range of dateTime string*/
+      return "PREFIX xsd:<http://www.w3.org/2001/XMLSchema#> \
+ 			PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+    		PREFIX dct:<http://purl.org/dc/terms/> \
+    		PREFIX owl:<http://www.w3.org/2002/07/owl#> \
+    		PREFIX tns:<http://neuron4web.palermo.enea.it/opendata/_trafficResource/> \
+    		PREFIX myo:<http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#> \
+    		PREFIX geo:<http://www.w3.org/2003/01/geo/wgs84_pos#> \
+    		SELECT ?s ?p ?o WHERE {?s a myo:Resource;dct:issued ?date;?p ?o. \
+    				FILTER(?date < \""+enddate+"\"^^xsd:dateTime && ?date > \""+startdate+"\"^^xsd:dateTime)  }  LIMIT 900";
+    };
+    function query_for_traffic_line(uri){
+    	/* return var ?o as uri of lines for traffics for input root uri */
+    	return "PREFIX xsd:<http://www.w3.org/2001/XMLSchema#> \
+			PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+ 			PREFIX dct:<http://purl.org/dc/terms/> \
+ 			PREFIX owl:<http://www.w3.org/2002/07/owl#> \
+ 			PREFIX tns:<http://neuron4web.palermo.enea.it/opendata/_trafficResource/> \
+ 			PREFIX myo:<http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#> \
+ 			PREFIX geo:<http://www.w3.org/2003/01/geo/wgs84_pos#> \
+ 			SELECT ?o WHERE {<"+uri+"> myo:hasItem ?o. ?o a myo:WazeItem.}  LIMIT 900";
+	};
+	
+	
+	
+	/* generic querys */
+	function query_for_linepoints_by_rootname(uriline){
+    	/* return var ?lat ?long from first point in uri lines */
+    	return "PREFIX xsd:<http://www.w3.org/2001/XMLSchema#> \
+			PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+ 			PREFIX dct:<http://purl.org/dc/terms/> \
+ 			PREFIX owl:<http://www.w3.org/2002/07/owl#> \
+ 			PREFIX myo:<http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#> \
+ 			PREFIX geo:<http://www.w3.org/2003/01/geo/wgs84_pos#> \
+ 			SELECT ?lat ?long ?next ?speed WHERE {<"+uriline+"> myo:hasPoint ?point. ?point geo:lat ?lat;geo:long ?long.OPTIONAL{<"+uriline+"> myo:speed ?speed}.OPTIONAL{?point myo:next ?next}}  LIMIT 900";
+	};
+	function query_for_next_point(uri){
+    	/* return var ?lat ?long from first point in uri traffic lines */
+    	return "PREFIX xsd:<http://www.w3.org/2001/XMLSchema#> \
+			PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+ 			PREFIX dct:<http://purl.org/dc/terms/> \
+ 			PREFIX owl:<http://www.w3.org/2002/07/owl#> \
+ 			PREFIX myo:<http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#> \
+ 			PREFIX geo:<http://www.w3.org/2003/01/geo/wgs84_pos#> \
+ 			SELECT ?lat ?long ?next WHERE {<"+uri+"> geo:lat ?lat;geo:long ?long;OPTIONAL{<"+uri+"> myo:next ?next}}  LIMIT 900";
+	};
+	
+	
+	 /* preformatted query string for twitter */
+    function query_for_twitter_root_by_date(startdate,enddate){
+       return "PREFIX xsd:<http://www.w3.org/2001/XMLSchema#> \
+    		PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+    		PREFIX dct:<http://purl.org/dc/terms/> \
+    		PREFIX owl:<http://www.w3.org/2002/07/owl#> \
+    		PREFIX tns:<http://neuron4web.palermo.enea.it/opendata/_twitterResource/> \
+    		PREFIX myo:<http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#> \
+    		PREFIX geo:<http://www.w3.org/2003/01/geo/wgs84_pos#> \
+    		SELECT ?s ?p ?o WHERE {?s a myo:Resource;dct:issued ?date. ?s ?p ?o \
+    				FILTER(?date < \""+enddate+"\"^^xsd:dateTime && ?date > \""+startdate+"\"^^xsd:dateTime)  }  LIMIT 900";
+    };
+    		
+    function query_for_subject(subject){
+    	return "PREFIX xsd:<http://www.w3.org/2001/XMLSchema#> \
+    		PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+    		PREFIX dct:<http://purl.org/dc/terms/> \
+    		PREFIX owl:<http://www.w3.org/2002/07/owl#> \
+    		PREFIX tns:<http://neuron4web.palermo.enea.it/opendata/_trafficResource/> \
+    		PREFIX myo:<http://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#> \
+    		PREFIX geo:<http://www.w3.org/2003/01/geo/wgs84_pos#> \
+    		SELECT ?p ?o WHERE {<"+subject+"> ?p ?o.} LIMIT 800";
+    };
+    		    
+    var endpoints={traffic:'http://neuron4web.palermo.enea.it/opendata/_trafficendpoint',
+    		twitter:'http://neuron4web.palermo.enea.it/opendata/_twitterendpoint'};
+    
+    var traffictree={name:'traffic',event:'traffictree_update',svg:null,spinner:null,color:'lightblue',children:[]};
+    var twittertree={name:'twitter',event:'twittertree_update',svg:null,spinner:null,color:'lightcoral',children:[]};
+    
+    var now,basetimer,playtimer,timer,timestep=(3600*1000),daystep=timestep*24,weekstep=daystep*7;
+    var cb={callback:null,arg:null};
+	
+    var margin = {top: 20, right: 120, bottom: 20, left: 120}, 
+    	width = 1024 - margin.right - margin.left,
+    	height = 800 - margin.top - margin.bottom;
+
+    var i = 0, duration = 750, root;
+    var diagonal,tree,map,tw=null;showed_traffic_layers=[];
+
+    function removeprefix(v){
+    	return v.split('/').pop().split('#').pop();
+    };
+    function myinsert(r,obj){
+    	//console.log('node ',r);
+    	//console.log('obj ',obj);
+    	if ('children' in r){
+    		var ins=false;
+    		r.children.forEach(function(ch){
+    				if ('name' in ch){
+    					if (ch.name===obj.name){
+    						ins=true;
+    						if (obj.children)
+    							obj.children.map(function(och){
+    								myinsert(ch,och);
+    							});
+    						
+    					}
+    				}
+    		});
+    		if (!ins) {
+    			myinsert(r.children,obj);
+    		}
+    	} else {
+    		//console.log('no children in ',r);
+    		if ('name' in obj){
+    			if (r) r.push(obj);
+    		}
+    	}
+    	
+    };
+    function add_nodes_from_response(root,spo){
+		  //s=removeprefix(spo.s);
+		  //p=removeprefix(spo.p);
+		  //o=removeprefix(spo.o);
+		  s=spo.s.value;
+		  p=spo.p.value;
+		  o=spo.o.value;
+		  /*if (!(s in root))
+			  root[s]=[];
+		  if (!(p in root[s]))
+			  root[s][p]=[];
+		  root[s][p].push(o);*/
+		  co={name:o};
+		  if (spo.o.type==='uri') co.children=[];
+		  po={name:p,children:[co]};
+		  obj={name:s,children:[po]};
+		  myinsert(root,obj);
+ 	  }
+	  
+
+    function collapse(d) {
+    	if (d.children) {
+		      d._children = d.children;
+		      d._children.forEach(collapse);
+		      d.children = null;
+		}
+	};
+	function search_parent(root,subj,find){
+		if (root.name==subj) return root;
+		if (root.children){
+			root.children.forEach(function(n){find=search_parent(n,subj,find);});
+		}
+		if (root._children){
+			root._children.forEach(function(n){find=search_parent(n,subj,find);});
+		}
+		return find;
+	};
+	function add_tonode(root,subj,sparqlres){
+		p=sparqlres.p.value;
+		o=sparqlres.o.value;
+		co={name:o};
+		if (sparqlres.o.type==='uri') co.children=[];
+		po={name:p,children:[co]};
+		obj={name:subj,children:[po]};
+		node=search_parent(root,subj,null);
+		if (node){
+			if ((node._children)&&(node._children!=null))
+				node.children=node._children;
+			node._children=null;
+			if (node.children==null) node.children=[];
+			//console.log('node to insert: ',node,obj);
+			myinsert(node.parent,obj);
+		}
+	};
+	function reqforsubj(root,endpoint,query,uri){
+		d3.json(''+endpoint+'?format=json&query='+encodeURIComponent(query),function(error, sparqlres) {
+			if (error) throw error;
+			resp = sparqlres.results.bindings;
+			resp.map(function(obj){add_tonode(root,uri,obj)});
+			update(root,root);
+		});
+	};
+	function initmap(){
+		if (map!=null) {
+			center=map.getCenter();
+			map.remove();
+		} else {
+			center={lat:38.1166667,lng:13.366667};
+		}
+		map=new mapboxgl.Map({
+			container: 'svgformap',
+			style: 'mapbox://styles/mapbox/light-v9',
+			center: [center.lng,center.lat],
+        	pitch: 45,
+        	bearing: -40,
+        	zoom: 13
+			});
+	
+	/*map.on('moveend',function(e){
+		map.flyTo({
+			speed:0.05,
+			curve:1,
+			zoom:13,
+			bearing:45*Math.random(),
+			pitch:30*Math.random(),
+			easing: function(t){return Math.sin((Math.PI/2)*t);}
+		});
+		console.log('move ended');
+	});*/
+	map.on('load',function(){
+		$('#svgformap').css('width',width+'px').css('height',height+'px');
+		el=$('.mapboxgl-canvas')[0];
+		$(el).css('width',width+'px').css('height',height+'px');
+		map.resize();
+		
+		/*var divfortw=document.createElement('div');
+		$(divfortw).addClass('twittermsgbox')
+					.insertAfter($(el));*/
+		
+		/*map.addLayer({
+			"id":"testroute",
+			"type":"line",
+			"layout": {"line-join": "round","line-cap": "round"},
+	        "paint": {"line-color": "#888","line-width": 8},
+			"source":{"type":"geojson","data":{
+					"type":"Feature",
+					"properties":{},
+					"geometry":{
+						"type":"LineString",
+						"coordinates":[
+						 [13.3211475,38.1627112],
+						 [13.3209274,38.1629855],
+						 [13.3207165,38.1631747],
+						 [13.3201713,38.1635954],
+						 [13.3196814,38.1639058]
+						 ]
+					
+					}
+				}
+			}
+		});*/
+		
+	return map;
+		
+	});
+	}
+  	function dotree(root,endpoint,query){
+  		$(root.svg[0]).fadeOut(1500,function(){$(root.spinner).show();});
+  		
+  		d3.json(''+endpoint+'?format=json&query='+encodeURIComponent(query),function(error, sparqlres) {
+    		if (error) throw error;
+    		// sparql-result json {head:obj, results:obj} 
+    	  	//queryvars= sparqlres.head.vars;
+    	  	resp = sparqlres.results.bindings;
+    	  	resp.map(function(obj){add_nodes_from_response(root,obj);});
+    	  	root.x0 = height / 2;
+    	  	root.y0 = 0;
+    	  	root.children.forEach(collapse);
+    	  	root.endpoint=endpoint;
+    	  	$(root.spinner).hide();
+    	  	$(root.svg[0]).fadeIn(1000);
+    	  	update(root,root);
+    	  	initmap();
+    	  	while(showed_traffic_layers.length>0){
+				old=showed_traffic_layers.pop();
+				map.removeLayer(old);
+			};
+			
+    	  	window.dispatchEvent(new Event(root.event));
+  		});
+  	};
+  	
+  	function millis(datetime){
+  		if (datetime) return (new Date(datetime)).getTime();
+  		return (new Date()).getTime();
+  	};
+  	function toISO(millis){
+  	return ((new Date(millis)).toJSON()).split('.')[0];
+  	};
+    function dd(){
+    	
+    	// init all svg graphs and tree
+    	tree = d3.layout.tree().size([height, width]);
+    	diagonal = d3.svg.diagonal().projection(function(d) { return [d.y, d.x]; });
+    	traffictree.svg = d3.select("#svgfortraffic")
+    		.append("svg")
+    	    .attr("width", width + margin.right + margin.left)
+    	    .attr("height", height + margin.top + margin.bottom)
+    	  	.append("g")
+    	    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+    	twittertree.svg = d3.select("#svgfortwitter")
+				.append("svg")
+	    		.attr("width", width + margin.right + margin.left)
+	    		.attr("height", height + margin.top + margin.bottom)
+	  			.append("g")
+	    	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    	
+    	twittertree.spinner='#spinnertwitter';
+    	traffictree.spinner='#spinnertraffic';
+    	
+    	d3.select(self.frameElement).style("height", "800px");
+		
+    	// init base of time
+    	//setTimeout(base_of_time,4000);
+    	
+    	// init slider for datetime selection
+    	$("#sliderfordate").slider({
+    		range: true,
+    		min: millis('2017-04-05T00:00:00'),
+    		max: millis(),
+    		step: timestep, // step 1 hour
+    		values: [ millis('2017-04-05T00:00:00'), millis('2017-04-09T00:00:00') ],
+    		slide: function( event,ui ){
+    			//console.log(ui.values[0],ui.values[1]);
+    			$('#daterange').html('from '+toISO(ui.values[0])+' to '+toISO(ui.values[1]));
+    			if (timer) clearTimeout(timer);
+    			timer=setTimeout(function(){
+    				tree_by_date(ui.values[0],ui.values[1]);},4000);
+    	    }
+    	});
+    	
+    	// play state
+    	// setTimeout(incrementSlide_for_a_step,2000);
+    	// 20 minutes every 2 seconds ---- sparql for lines---- ??
+    	window.addEventListener('time',step_for_time);
+    	window.addEventListener('twittertree_update',function(e){tw=tweets_for_div(e);});
+    	window.addEventListener('traffictree_update',function(e){tr=traffic_for_svg(e);});
+    	
+    	now=millis(new Date('2017-04-10T07:00:00Z'));
+    	
+    	// init mapbox 
+    	mapboxgl.accessToken = '';
+		initmap();
+		/*map.on('mousemove', function (e) {
+		    console.log(JSON.stringify(e.point),JSON.stringify(e.lngLat));
+		});*/
+    	/*map.on('load',function(){
+    		map.addLayer({
+    			"id":"route",
+    			"type":"line",
+    			"source":{
+    				"type":"geojson",
+    				"data":{
+    					"type":"Feature",
+    					"properties":{},
+    					"geometry":{
+    						"type":"LineString",
+    						"coordinates":[
+    						   
+    						]}
+    				}
+    			}
+    		});
+    		
+    	});*/
+    	
+    	
+    	
+    	// let's do it ! 
+    	var startd='2017-04-04T00:00:00';
+    	var endd='2017-04-12T00:00:00';
+    	
+    	//d3.json('http://neuron4web.palermo.enea.it/opendata/_trafficendpoint?query=PREFIX+xsd%3A%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0D%0APREFIX+rdf%3A%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0D%0APREFIX+dct%3A%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0D%0APREFIX+tns%3A%3Chttp%3A%2F%2F192.107.94.227%3A5984%2Finfotraffic%2F_trafficResource%2F%3E+%0D%0APREFIX+myo%3A%3Chttp%3A%2F%2F192.107.94.227%3A5984%2Finfotraffic%2F_vocabulary%2Fmyowl%23%3E+%0D%0APREFIX+geo%3A%3Chttp%3A%2F%2Fwww.w3.org%2F2003%2F01%2Fgeo%2Fwgs84_pos%23%3E%0D%0ASELECT+%3Fs+%3Fp+%3Fo+WHERE+%7B%3Fs+a+myo%3AResource.+%3Fs+%3Fp+%3Fo%7D+LIMIT+300&format=json', function(error, sparqlres) {
+    	dotree(traffictree,endpoints.traffic,query_for_traffic_root_by_date(startd,endd));
+    	dotree(twittertree,endpoints.twitter,query_for_twitter_root_by_date(startd,endd));
+    		
+    	
+    };
+    /* from local array of traffic uris, render geometry to map */
+    function traffic_to_svg(trobj){
+    	var dat,text,lineuri;
+    	trobj.forEach(function(objarr){
+    		objarr.forEach(function(obj){
+    			if (obj.lineitem)
+    				return_line_for_map(endpoints.traffic,obj.lineitem,traffictree.color,add_line_layer);
+    		});
+    	});
+    	
+    };
+    
+    /* from local array of twitter uris, render geometry to map and text to div  */
+    function tweet_to_div(twobj){
+    	var deep=12;
+    	var div=$('.twittermsgbox')[0];
+    	var p=document.createElement('p');
+    	var dat,text,lineuri;
+    	twobj.forEach(function(obj){
+    		dat=dat||obj.date;
+    		text=text||obj.text;
+    		lineuri=lineuri||obj.osmitem;
+    	});
+    	
+    	
+    	$(p).html(toISO(dat)+' -- '+text);
+    	$(div).prepend(p);
+    	var objtt=$(div).children();
+    	var keys=Object.keys(objtt);
+    	keys.forEach(function(key){
+    		if ($(objtt[key]).is('p')){
+    			if (Number(key)>deep) $(objtt[key]).remove();
+    			else op=1-(Number(key)/deep);
+    			$(objtt[key]).css('opacity',op);
+    		}
+    	});
+    	if (lineuri){
+    		return_line_for_map(endpoints.twitter,lineuri,twittertree.color,add_line_layer);
+    	}
+    };
+    
+    function myplay(d){
+    	// init if not set
+    	//if (d)
+    	//	frt=d+daystep;
+    	//else
+    	//	frt=millis(new Date('2017-04-10T00:00:00'));
+		
+    	// set the slider
+    	$('#sliderfordate').slider('values',1,now+daystep);
+    	$('#sliderfordate').slider('values',0,now);
+    	$('#daterange').html('from '+toISO(now)+' to '+toISO(now+daystep));
+		
+    	// start the loop
+    	tree_by_date(now,now+daystep);
+    	basetimer=setTimeout(base_of_time,10000);
+    	playtimer=setTimeout(function(){
+    		myplay(now)
+    		},10*60000);
+    };
+    
+    /* get traffic data from root and create an array of ordered by date line items*/
+    function traffic_for_svg(e){
+    	// get tweets
+    	var trret=[];
+    	var subobj=get_child(traffictree);
+    	subobj.forEach(function(subj){
+    		predobj=get_child(subj);
+    		var pwret=[];
+    		predobj.forEach(function(pred){
+    			test=removeprefix(pred.name);
+        		if (test==='issued') {
+        			pwret.push({'date':millis(((get_child(pred))[0]).name)});
+    			}
+        		if (test==='hasItem') {
+        			test_child(pred,traffictree.root);
+        			objgeo=get_child(pred);
+        			if ((objgeo!=[])&&(objgeo!=null)){
+        				objgeo.forEach(function(geo){
+        					na=geo.name;
+            				pwret.push({'lineitem':na});
+        				});
+        					//lineuri=(objosm.pop()).name;
+        				//return_line_for_map(endpoints.twitter,lineuri,add_line_layer);
+        			}
+        		}
+       		});
+    		if (pwret!=[]) trret.push(pwret);
+    	});	
+    	return trret.sort(function(a,b){
+    		var da,db;
+    		a.forEach(function(o){if (o.date) da=o.date;});
+    		b.forEach(function(o){if (o.date) db=o.date;});
+    		return (db-da);
+    	});
+    };
+    /* get twitter data from root and create an array of ordered by date items*/
+    function tweets_for_div(e){
+    	// get tweets
+    	var twret=[];
+    	var subobj=get_child(twittertree);
+    	if ((subobj!=[])||(subobj!=null)){
+    	subobj.forEach(function(subj){
+    		predobj=get_child(subj);
+    		var pwret=[];
+    		predobj.forEach(function(pred){
+    			test=removeprefix(pred.name);
+        		if (test==='twittertext') {
+        			pwret.push({'text':((get_child(pred))[0]).name});
+        		}
+        		if (test==='issued') {
+        			pwret.push({'date':millis(((get_child(pred))[0]).name)});
+    			}
+        		if (test==='geometry') {
+        			test_child(pred,twittertree.root);
+        			objosm=get_child(pred);
+        			if ((objosm!=[])&&(objosm!=null)){
+        				objosm.forEach(function(osm){
+        					pwret.push({'osmitem':osm.name});
+        				});
+        				
+        				//lineuri=(objosm.pop()).name;
+        				//return_line_for_map(endpoints.twitter,lineuri,add_line_layer);
+        			}
+        		}
+       		});
+    		if (pwret!=[]) twret.push(pwret);
+    	});	
+    	}
+    	return twret.sort(function(a,b){
+    		var da,db;
+    		a.forEach(function(o){if (o.date) da=o.date;});
+    		b.forEach(function(o){if (o.date) db=o.date;});
+    		return (db-da);
+    	});
+    };
+    /* stop execution of simulation */
+    function mystop(){
+    	clearTimeout(playtimer);
+    	clearTimeout(basetimer);
+    };
+    /* base of time of simulation */
+    function base_of_time(){
+    	//console.log('time');
+    	window.dispatchEvent(new Event("time"));
+    	now+=1000*10*10;
+    	$('#divfortime').html(toISO(now));
+    	basetimer=setTimeout(base_of_time,10000);
+    };
+    /* simulate events */  
+    function step_for_time(){
+    	/* shows tweets */
+    	if (tw){
+    		var index=0;
+    		for (index=0;index<tw.length;index++){
+    			el=tw.pop();
+    			var delem;
+        		el.forEach(function(o){if (o.date) delem=o.date;});
+        		if (delem<=now)
+        			tweet_to_div(el);
+        		else tw.push(el);
+    		}
+    	}
+    	/* show traffics */
+    	if (tr){
+    		var index=0,ii=0;
+    		for (index=0;index<tr.length;index++){
+    			el=tr.pop();
+    			var delem;
+        		el.forEach(function(o){if (o.date) delem=o.date;});
+        		if (delem<=now){
+        			//map.remove(showed_traffic_layers);
+        			traffic_to_svg([el]);
+        		}
+        		else tr.push(el);
+    		}
+    	}
+    };
+    
+    /* create a root by date */
+    function tree_by_date(startmillis,endmillis){
+		
+		traffictree.children=[];
+		traffictree._children=null;
+		
+		twittertree.children=[];
+		twittertree._children=null;
+		
+		dotree(traffictree,endpoints.traffic,query_for_traffic_root_by_date(toISO(startmillis),toISO(endmillis)));
+		dotree(twittertree,endpoints.twitter,query_for_twitter_root_by_date(toISO(startmillis),toISO(endmillis)));
+	};
+    
+    function mycallback(mboxobj){
+		console.log('hello points are:',mboxobj.source.data.geometry.coordinates);
+		console.log('obj for map is:',mboxobj);				
+	};
+	function add_line_layer(mboxobj){
+		//map.removeLayer(mboxobj.id);
+		/*target=mboxobj.source.data.geometry.coordinates[0];*/
+		
+		
+		map.addLayer(mboxobj.layer);
+		/*map.flyTo({
+			center: target,
+			speed:0.2,
+			curve:1,
+			zoom:16,
+			bearing:45*Math.random(),
+			easing: function(t){return Math.sin((Math.PI/2)*t);}
+			});*/
+	};
+	/* return layer for render to mapbox by lineuri */
+	class Map_layer{
+		constructor(lineuri,color,callback){
+			this.points=[];
+			this.geomobj={'type':'LineString','coordinates':this.points};
+			this.dataobj={'type':'Feature','properties':{},'geometry':this.geomobj};
+			this.gj={'type':'geojson','data':this.dataobj};
+			this.layer={'id':lineuri,'type':'line','layout':{'line-join':'round','line-cap':'round'},'paint':{'line-color':color,'line-width':10},'source':this.gj};
+			this.callback=callback;
+			this.speed=9000;
+			showed_traffic_layers.push(lineuri);
+		}
+		append(obj){
+			this.points.push(obj);
+		}
+		setspeed(sp){
+			if (sp<7){
+				this.layer.paint['line-color']='yellow';
+			}
+			if (sp<3){
+				this.layer.paint['line-color']='red';
+			}
+			this.speed=sp;
+		}
+		
+	};
+    function return_line_for_map(endpoint,lineuri,color,callback){
+		cbarg=new Map_layer(lineuri,color,callback);
+		get_points_from_uri(cbarg,endpoint,query_for_linepoints_by_rootname(lineuri));
+	};
+	
+    /*function get_points_from_lineuri(cbarg,endpoint,lineuri){
+    	get_points_from_uri(cbarg,endpoint,query_for_linepoints_by_rootname(lineuri));
+    };*/
+    
+    /* async call for add line to map by lineuri geometry*/
+    function get_points_from_uri(cbarg,endpoint,query,callback){
+    	var myarg=cbarg;
+    	d3.json(''+endpoint+'?format=json&query='+encodeURIComponent(query),function(error, sparqlres) {
+    		if (error) throw error;
+    		resp = sparqlres.results.bindings;
+    		//console.log(resp);
+    		if (resp)
+    			resp.forEach(function(re){
+    				if (re.speed)
+    					myarg.setspeed(re.speed.value);
+    				//points.push({lat:re.lat.value,lon:re.long.value});
+    				myarg.append([re.long.value,re.lat.value]);
+    				if (re.next) 
+    					get_points_from_uri(myarg,endpoint,query_for_next_point(re.next.value));
+    				else 
+    					if(myarg.callback) myarg.callback(myarg);
+    			});
+    	});
+    
+    };
+    /* utility to get children or _children*/
+    function children_len(node){
+    	var l=1;
+    	if (node.children) l=node.children.length;
+    	if (node._children) l=node._children.length;
+    	return l;
+    };
+ 
+    /* update svg visualization and event handler*/
+    function update(source,root) {
+
+    	// Compute the new tree layout.
+    	  var nodes = tree.nodes(root).reverse(),
+    	      links = tree.links(nodes);
+		  
+    	  var svg=root.svg;
+    	  var color=root.color;
+		  
+    	  // Normalize for fixed-depth.
+    	  nodes.forEach(function(d) { d.y = d.depth * 100; });
+
+    	  // Update the nodes…
+    	  var node = svg.selectAll("g.node")
+    	      .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+    	  // Enter any new nodes at the parent's previous position.
+    	  var nodeEnter = node.enter().append("g")
+    	      .attr("class", "node")
+    	      .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+    	      .on("mouseover", my_tooltip) //function(e){console.log('mouse over',e);})
+    	      .on("click", function(e){click(e,root);});
+				
+    	  nodeEnter.append("circle")
+    	      .attr("r", function(d) { return 1e-6*children_len(d); })
+    	      .style("fill", function(d) { return d._children ? color : "#fff"; });
+
+    	  nodeEnter.append("text")
+    	      .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
+    	      .attr("dy", ".35em")
+    	      .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
+    	      .text(function(d) { return removeprefix(d.name); })
+    	      .style("fill-opacity", 1e-6);
+
+    	  // Transition nodes to their new position.
+    	  var nodeUpdate = node.transition()
+    	      .duration(duration)
+    	      .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+    	  nodeUpdate.select("circle")
+    	      .attr("r", function(d) { return 1.0*children_len(d); })
+    	      .style("fill", function(d) { return d._children ? color : "#fff"; });
+
+    	  nodeUpdate.select("text")
+    	      .style("fill-opacity", 1);
+
+    	  // Transition exiting nodes to the parent's new position.
+    	  var nodeExit = node.exit().transition()
+    	      .duration(duration)
+    	      .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+    	      .remove();
+
+    	  nodeExit.select("circle")
+    	      .attr("r", 1e-6);
+
+    	  nodeExit.select("text")
+    	      .style("fill-opacity", 1e-6);
+
+    	  // Update the links…
+    	  var link = svg.selectAll("path.link")
+    	      .data(links, function(d) { return d.target.id; });
+
+    	  // Enter any new links at the parent's previous position.
+    	  link.enter().insert("path", "g")
+    	      .attr("class", "link")
+    	      .attr("d", function(d) {
+    	        var o = {x: source.x0, y: source.y0};
+    	        return diagonal({source: o, target: o});
+    	      });
+
+    	  // Transition links to their new position.
+    	  link.transition()
+    	      .duration(duration)
+    	      .attr("d", diagonal);
+
+    	  // Transition exiting nodes to the parent's new position.
+    	  link.exit().transition()
+    	      .duration(duration)
+    	      .attr("d", function(d) {
+    	        var o = {x: source.x, y: source.y};
+    	        return diagonal({source: o, target: o});
+    	      })
+    	      .remove();
+
+    	  // Stash the old positions for transition.
+    	  nodes.forEach(function(d) {
+    	    d.x0 = d.x;
+    	    d.y0 = d.y;
+    	  });
+    	}
+		function ValidURL(str) {
+			  var regex = /(http|https):\/\/(\w+:{0,1}\w*)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%!\-\/]))?/;
+			  return !(!regex.test(str));
+		}
+		function my_tooltip(e){
+			var div=document.createElement('div');
+			var svgdiv=$('#svgforgraph');
+			//create popup
+			/*$(div)
+				.css('background-color','yellow')
+				.css('position','fixed')
+				.css('width','80px')
+				.css('height','80px')
+				.css('top',(svgdiv[0].offsetTop+e.x)+'px')
+				.css('left',(140+svgdiv[0].offsetLeft+e.y)+'px')
+				.css('display','none')
+				.html(e.name)
+				.insertAfter($(svgdiv));*/
+			// animate it
+			/*$(div)
+				.show('slow')
+				.delay(2000)
+				.hide('fast')
+				.queue(function(){$(this).remove();});*/
+				
+			
+		}
+    	function link_or_resource(root,node){
+    		var string=node.name;
+    		if (!ValidURL(string)) return link_or_resource(root,node.parent);	
+    		if (string.match(/http:\/\/neuron4web\.palermo\.enea\.it\/opendata\/_.*Resource\//g)===null){
+    	    	console.log('link to '+string);
+    	    	d3.xml(string,'application/rdf+xml',function(error,xdoc){
+    	    		if (error) throw error;
+    	    		xmldoc=xdoc.documentElement;
+    	    		elems=xmldoc.childElementCount;
+    	    		for (i=0;i<elems;i++){
+    	    			if (xmldoc.children[i].getAttribute('rdf:about')==string){
+    	    				label=xmldoc.children[i].getElementsByTagNameNS('*','label')
+    	    				comment=xmldoc.children[i].getElementsByTagNameNS('*','comment')
+    	    				if (label) console.log('label ',label[0].innerHTML);
+    	    				if (comment) console.log('comment ',comment[0].innerHTML);
+    	    			}
+    	    		}
+    	    		
+    	    	});
+    		}else{
+	    		console.log('do a request for '+query_for_subject(string));
+	    		reqforsubj(root,root.endpoint,query_for_subject(string),string);
+	    	}
+    	};
+    	function get_child(node){
+    		var child=null;
+      	 	ext=Object.keys(node);
+        	ext.forEach(function(k){
+        		  f=k.match(/children/);
+        		  if (f) child=child||node[k];
+        	  });
+        	return child;
+    	};
+    	function test_child(d,root){
+    	  var child=get_child(d);
+      	  //console.log('child is ',child);
+      	  if ((child==[])|(!child)) link_or_resource(root,d);
+    	};
+    	// Toggle children on click.
+    	function click(d,root) {
+    	  if (d.children) {
+    	    d._children = d.children;
+    	    d.children = null;
+    	  } else {
+    	    d.children = d._children;
+    	    d._children = null;
+    	  }
+    	  test_child(d,root);
+    	  update(d,root);
+    	}
+	</script>
+</head>
+
+<body onload="dd();">
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container" id="header">
+	<div class="navbar-header">
+	<h1 style="color:#ca9191;" property="dct:title" >my Knowledge</h1>
+    </div>
+
+    <div class="collapse navbar-collapse" id="menu">
+	  <ul class="nav navbar-nav">
+	   <li><a href="#About">About</a></li>
+	 	<li><a href="http://neuron4web.palermo.enea.it/opendata/resource/catalog.ttl">Catalog Turtle</a></li>
+ 		<li><a href="http://neuron4web.palermo.enea.it/opendata/resource/catalog.rdf">Catalog rdf</a></li>
+		 <li><a href="http://neuron4web.palermo.enea.it/opendata/resource/catalog.jsonld">Catalog json-ld</a></li>
+		<li><a href="http://creativecommons.org/licenses/by/4.0"><img height="33px" src="http://neuron4web.palermo.enea.it/opendata/resource/by.png"></img></a></li>
+		</ul>
+    </div>
+	</div>
+	</nav>
+	
+	<div class="page-header"></div>
+	
+	<div class="container">
+    <div class="starter-template">
+    	<div class="page-header">
+    	<h1>SVG GRAPH</h1>
+    	<span><small id="daterange"></small></span><span>
+    	<button onclick="myplay();">Play</button><button onclick="mystop();">Stop</button></span>
+    	<div class="col-md-12" id="sliderfordate">
+    	<!-- <p>
+    		<label for="datarange">Date range selector</label>
+    		<input type="text" id="datarange" readonly style="border:0; color:#332214;"/>
+    	</p> -->
+    	</div>
+    	<div class="row">
+		<div class="col-md-12" id="svgfortraffic">
+		<div id="spinnertraffic" class="spinner"><div class="double-bounce1"></div><div class="double-bounce2"></div></div></div></div>
+		<div class="row">
+		<div class="col-md-12" id="svgfortwitter">
+		<div id="spinnertwitter" class="spinner"><div class="double-bounce1"></div><div class="double-bounce2"></div></div></div></div>
+		<div class="row">
+		<div class="col-xs-2" id="divfortime"></div>
+		<div class="row">
+		<div class="twittermsgbox"></div>
+		<div class="col-md-12 col-md-offset-3" id="svgformap"></div></div>
+		</div>
+	</div>
+	
+	<div class="page-header"><h2>SPARQL query editor</h2></div>
+	<div class="row">
+  	
+    <div id="trafficendpoint" class="col-md-6">
+	<form action="http://neuron4web.palermo.enea.it/opendata/_trafficendpoint" method="get">
+	<fieldset>
+		<!--  <label for="default-graph-uri">Default Data Set Name (Graph IRI)</label><br /> -->
+		<!-- <input type="text" name="default-graph-uri" id="default-graph-uri" value="http://neuron4web.palermo.enea.it/opendata/_twitterendpoint" size="80"/> -->
+		<!-- <select name="default-graph-uri" id="default-graph-uri" onchange="javascript:uri_change(this)">
+			<option value="http://neuron4web.palermo.enea.it/opendata/_twitterendpoint" selected="selected">Twitter resources</option>
+			<option value="http://neuron4web.palermo.enea.it/opendata/_trafficendpoint" >Waze traffic resources</option>
+		</select>  -->
+		<label for="query"><a href="http://dbpedia.org/resource/Traffic">Waze traffic</a> dataset Query Text</label><br />
+		
+		<textarea rows="18" cols="80" name="query" id="trafficquery">PREFIX owl:&lthttp://www.w3.org/2002/07/owl#&gt&#13;PREFIX xsd:&lthttp://www.w3.org/2001/XMLSchema#&gt&#13;PREFIX rdf:&lthttp://www.w3.org/1999/02/22-rdf-syntax-ns#&gt&#13;PREFIX dct:&lthttp://purl.org/dc/terms/&gt&#13;PREFIX tns:&lthttp://neuron4web.palermo.enea.it/opendata/_trafficResource/&gt &#13;PREFIX myo:&lthttp://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#&gt &#13;PREFIX geo:&lthttp://www.w3.org/2003/01/geo/wgs84_pos#&gt&#13;SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 100</textarea>
+		<!-- <span class="info"><i>(Security restrictions of this server do not allow you to retrieve remote RDF data, see <a href="/sparql?help=enable_sponge">details</a>.)</i></span> -->
+		
+		<label for="format" class="n">SPARQL Result format</label>
+		<select name="format" id="format" ><!-- onchange="javascript:format_change(this)"> -->
+			<option value="xml" selected="selected">XML</option>
+			<option value="txt" >Turtle</option>
+			<option value="csv" >CSV</option>
+			<option value="json" >JSON</option>
+		</select>
+		<!-- <label for="timeout" class="n">Execution timeout</label>
+		<input name="timeout" id="timeout" type="text" value="30" /> seconds
+		<span class="info"><i>(The result can only be sent back to browser, not saved on the server, see <a href="/sparql?help=enable_det">details</a>)</i></span> -->
+		<input type="submit" value="Run Query"/>
+		<input type="reset" value="Reset"/>
+	</fieldset>
+	</form>
+	</div>
+	<div id="twitterendpoint" class="col-md-6" >
+	<form action="http://neuron4web.palermo.enea.it/opendata/_twitterendpoint" method="get">
+	<fieldset>
+		<!--  <label for="default-graph-uri">Default Data Set Name (Graph IRI)</label><br /> -->
+		<!-- <input type="text" name="default-graph-uri" id="default-graph-uri" value="http://neuron4web.palermo.enea.it/opendata/_twitterendpoint" size="80"/> -->
+		<!-- <select name="default-graph-uri" id="default-graph-uri" onchange="javascript:uri_change(this)">
+			<option value="http://neuron4web.palermo.enea.it/opendata/_twitterendpoint" selected="selected">Twitter resources</option>
+			<option value="http://neuron4web.palermo.enea.it/opendata/_trafficendpoint" >Waze traffic resources</option>
+		</select>  -->
+		<label for="query"><a href="http://dbpedia.org/resource/Twitter">Twitter</a> dataset Query Text</label><br />
+		<textarea rows="18" cols="80" name="query" id="twitterquery">PREFIX owl:&lthttp://www.w3.org/2002/07/owl#&gt&#13;PREFIX xsd:&lthttp://www.w3.org/2001/XMLSchema#&gt&#13;PREFIX rdf:&lthttp://www.w3.org/1999/02/22-rdf-syntax-ns#&gt&#13;PREFIX dct:&lthttp://purl.org/dc/terms/&gt&#13;PREFIX tns:&lthttp://neuron4web.palermo.enea.it/opendata/_twitterResource/&gt &#13;PREFIX myo:&lthttp://neuron4web.palermo.enea.it/opendata/_vocabulary/myowl#&gt &#13;PREFIX geo:&lthttp://www.w3.org/2003/01/geo/wgs84_pos#&gt&#13;SELECT DISTINCT ?s ?p ?o WHERE {?s ?p ?o} LIMIT 100</textarea>
+		<!-- <span class="info"><i>(Security restrictions of this server do not allow you to retrieve remote RDF data, see <a href="/sparql?help=enable_sponge">details</a>.)</i></span> -->
+		<label for="format" class="n">SPARQL Result format</label>
+		<select name="format" id="format" ><!-- onchange="javascript:format_change(this)"> -->
+			<option value="xml" selected="selected">XML</option>
+			<option value="txt" >Turtle</option>
+			<option value="csv" >CSV</option>
+			<option value="json" >JSON</option>
+		</select>
+		<!--  <label for="timeout" class="n">Execution timeout</label>
+		 <input name="timeout" id="timeout" type="text" value="30" /> seconds
+		<span class="info"><i>(The result can only be sent back to browser, not saved on the server, see <a href="/sparql?help=enable_det">details</a>)</i></span>-->
+		<input type="submit" value="Run Query"/>
+		<input type="reset" value="Reset"/>
+	</fieldset>
+	</form>
+    	</div>
+		</div>
+    </div>
+    
+    <div xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns="http://www.w3.org/1999/xhtml"
+         xmlns:sd="http://www.w3.org/ns/sparql-service-description#"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         style="display:none">
+       <div class="description" about="" typeof="sd:Service">
+          <div rel="sd:endpoint" resource="http://dbpedia.org/sparql"/>
+          <div rel="sd:feature"
+               resource="http://www.w3.org/ns/sparql-service-description#UnionDefaultGraph"/>
+          <div rel="sd:feature"
+               resource="http://www.w3.org/ns/sparql-service-description#DereferencesURIs"/>
+          <div rel="sd:resultFormat" resource="http://www.w3.org/ns/formats/RDF_XML"/>
+          <div rel="sd:resultFormat" resource="http://www.w3.org/ns/formats/Turtle"/>
+          <div rel="sd:resultFormat"
+               resource="http://www.w3.org/ns/formats/SPARQL_Results_CSV"/>
+          <div rel="sd:resultFormat" resource="http://www.w3.org/ns/formats/N-Triples"/>
+          <div rel="sd:resultFormat" resource="http://www.w3.org/ns/formats/N3"/>
+          <div rel="sd:resultFormat"
+               resource="http://www.w3.org/ns/formats/SPARQL_Results_JSON"/>
+          <div rel="sd:resultFormat" resource="http://www.w3.org/ns/formats/RDFa"/>
+          <div rel="sd:resultFormat"
+               resource="http://www.w3.org/ns/formats/SPARQL_Results_XML"/>
+          <div rel="sd:supportedLanguage"
+               resource="http://www.w3.org/ns/sparql-service-description#SPARQL10Query"/>
+          <div rel="sd:url" resource="http://dbpedia.org/sparql"/>
+       </div>
+    </div>
+</body>
+</html>
